@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "mgx-basic.fullname" . }}
+  name: {{ include "nginx-stream.fullname" . }}
   labels:
-    {{- include "mgx-basic.labels" . | nindent 4 }}
+    {{- include "nginx-stream.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "mgx-basic.selectorLabels" . | nindent 6 }}
+      {{- include "nginx-stream.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -18,7 +18,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "mgx-basic.labels" . | nindent 8 }}
+        {{- include "nginx-stream.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -27,7 +27,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "mgx-basic.serviceAccountName" . }}
+      serviceAccountName: {{ include "nginx-stream.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -46,13 +46,27 @@ spec:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.volumeMounts }}
+          {{- if or .Values.volumeMounts .Values.persistence.additionalMounts }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
+            {{- if .Values.volumeMounts }}
+             {{- .Values.volumeMounts | toYaml | nindent 12 }}
+            {{- end }}
+            {{- if .Values.persistence.additionalMounts }}
+             {{- .Values.persistence.additionalMounts | toYaml | nindent 12 }}
+            {{- end }}
           {{- end }}
-      {{- with .Values.volumes }}
+      {{- if or .Values.volumes .Values.persistence.additionalVolumes }}
       volumes:
-        {{- toYaml . | nindent 8 }}
+        {{- if .Values.volumes }}
+          {{- .Values.volumes | toYaml | nindent 8}}
+        {{- end }}
+        {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "nginx-stream.fullname" .) }}
+        {{- end }}
+        {{- if .Values.persistence.additionalVolumes }}
+          {{- .Values.persistence.additionalVolumes | toYaml | nindent 8}}
+        {{- end }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "mgx-basic.name" -}}
+{{- define "nginx-stream.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "mgx-basic.fullname" -}}
+{{- define "nginx-stream.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "mgx-basic.chart" -}}
+{{- define "nginx-stream.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "mgx-basic.labels" -}}
-helm.sh/chart: {{ include "mgx-basic.chart" . }}
-{{ include "mgx-basic.selectorLabels" . }}
+{{- define "nginx-stream.labels" -}}
+helm.sh/chart: {{ include "nginx-stream.chart" . }}
+{{ include "nginx-stream.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,17 +45,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "mgx-basic.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "mgx-basic.name" . }}
+{{- define "nginx-stream.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "nginx-stream.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "mgx-basic.serviceAccountName" -}}
+{{- define "nginx-stream.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "mgx-basic.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "nginx-stream.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

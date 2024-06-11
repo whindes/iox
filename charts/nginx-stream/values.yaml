@@ -1,14 +1,14 @@
-# Default values for mgx-basic.
+# Default values for nginx-stream.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
 
 image:
-  repository: nginx
+  repository: whindes/nginx
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "1.25.5"
+  tag: "alpine3.20-1.25.5"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -87,6 +87,18 @@ autoscaling:
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
+
+persistence:
+  storageClass: ""
+  existingClaim: ""
+  enabled: false
+  accessMode: ReadWriteOnce
+  size: 800Mi
+  # if you need any additional volumes, you can define them here
+  additionalVolumes: []
+  # if you need any additional volume mounts, you can define them here
+  additionalMounts: []
+
 
 # Additional volumes on the output Deployment definition.
 volumes: []

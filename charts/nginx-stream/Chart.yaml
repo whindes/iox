@@ -3,6 +3,6 @@ name: nginx-stream
 description: A Custom Nginx Service with Stream enabled
 
 type: application
-version: 0.1.1
+version: 0.2.0
 
 appVersion: "1.16.1"
