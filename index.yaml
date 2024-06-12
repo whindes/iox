@@ -3,6 +3,16 @@ entries:
   nginx-stream:
   - apiVersion: v2
     appVersion: 1.16.1
+    created: "2024-06-12T05:01:40.597452947Z"
+    description: A Custom Nginx Service with Stream enabled
+    digest: 3c26861af7d0f75829a944e2f8c942498a68993486dc1e640e3a6e625f55cb38
+    name: nginx-stream
+    type: application
+    urls:
+    - https://github.com/whindes/iox/releases/download/nginx-stream-0.2.0/nginx-stream-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
+    appVersion: 1.16.1
     created: "2024-06-11T18:48:43.163085223Z"
     description: A Custom Nginx Service with Stream enabled
     digest: 7dde4b0a2bb27a19802f8d00fe981bd97a50c03a318b2d4aca52a7f83baab6f3
@@ -11,4 +21,4 @@ entries:
     urls:
     - https://github.com/whindes/iox/releases/download/nginx-stream-0.1.1/nginx-stream-0.1.1.tgz
     version: 0.1.1
-generated: "2024-06-11T18:48:43.163096364Z"
+generated: "2024-06-12T05:01:40.597461403Z"
