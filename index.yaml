@@ -34,6 +34,16 @@ entries:
   wordpress-fpm:
   - apiVersion: v2
     appVersion: 1.16.2
+    created: "2024-06-12T20:20:09.364886782Z"
+    description: A Helm chart for Kubernetes
+    digest: 84296d9d26db4a7b65686629befa3fb60227ded9b2832da77855e1dd5c732b1c
+    name: wordpress-fpm
+    type: application
+    urls:
+    - https://github.com/whindes/iox/releases/download/wordpress-fpm-0.2.2/wordpress-fpm-0.2.2.tgz
+    version: 0.2.2
+  - apiVersion: v2
+    appVersion: 1.16.2
     created: "2024-06-12T19:40:17.345580025Z"
     description: A Helm chart for Kubernetes
     digest: 7b0267574f69188650d802ac8c825dbede7c531e9a10c27c2fdc026a707f3ff1
@@ -42,4 +52,4 @@ entries:
     urls:
     - https://github.com/whindes/iox/releases/download/wordpress-fpm-0.2.1/wordpress-fpm-0.2.1.tgz
     version: 0.2.1
-generated: "2024-06-12T19:40:17.345619819Z"
+generated: "2024-06-12T20:20:09.364904676Z"
