@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   nginx-stream:
   - apiVersion: v2
+    appVersion: 1.16.2
+    created: "2024-06-12T19:40:17.137257761Z"
+    description: A Custom Nginx Service with Stream enabled
+    digest: e7a943e172030f21c1c78a392aab249d00ff472cba4c06b3d2a87d6e5c41c23c
+    name: nginx-stream
+    type: application
+    urls:
+    - https://github.com/whindes/iox/releases/download/nginx-stream-0.2.1/nginx-stream-0.2.1.tgz
+    version: 0.2.1
+  - apiVersion: v2
     appVersion: 1.16.1
     created: "2024-06-12T05:01:40.597452947Z"
     description: A Custom Nginx Service with Stream enabled
@@ -21,4 +31,15 @@ entries:
     urls:
     - https://github.com/whindes/iox/releases/download/nginx-stream-0.1.1/nginx-stream-0.1.1.tgz
     version: 0.1.1
-generated: "2024-06-12T05:01:40.597461403Z"
+  wordpress-fpm:
+  - apiVersion: v2
+    appVersion: 1.16.2
+    created: "2024-06-12T19:40:17.345580025Z"
+    description: A Helm chart for Kubernetes
+    digest: 7b0267574f69188650d802ac8c825dbede7c531e9a10c27c2fdc026a707f3ff1
+    name: wordpress-fpm
+    type: application
+    urls:
+    - https://github.com/whindes/iox/releases/download/wordpress-fpm-0.2.1/wordpress-fpm-0.2.1.tgz
+    version: 0.2.1
+generated: "2024-06-12T19:40:17.345619819Z"
