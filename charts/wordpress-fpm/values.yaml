@@ -71,6 +71,7 @@ resources: {}
 #   cpu: 100m
 #   memory: 128Mi
 
+enableProbes: false
 livenessProbe:
   httpGet:
     path: /
