@@ -44,6 +44,8 @@ spec:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+          env:
+            {{- toYaml .Values.image.env | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if or .Values.volumeMounts .Values.persistence.additionalMounts }}

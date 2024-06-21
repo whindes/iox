@@ -9,6 +9,9 @@ image:
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "alpine3.20-1.25.5"
+  env:
+    - name: RELEASE_BUILD
+      value: 1.0
 
 imagePullSecrets: []
 nameOverride: ""
