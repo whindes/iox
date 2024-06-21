@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   nginx-stream:
   - apiVersion: v2
+    appVersion: 1.16.4
+    created: "2024-06-21T21:13:34.828930962Z"
+    description: A Custom Nginx Service with Stream enabled
+    digest: e30042de853a77bd9a278c193b841f3a70e7f210e938c9f593a9c54c63ff3c94
+    name: nginx-stream
+    type: application
+    urls:
+    - https://github.com/whindes/iox/releases/download/nginx-stream-0.2.4/nginx-stream-0.2.4.tgz
+    version: 0.2.4
+  - apiVersion: v2
     appVersion: 1.16.3
     created: "2024-06-14T21:22:30.172284031Z"
     description: A Custom Nginx Service with Stream enabled
@@ -72,4 +82,4 @@ entries:
     urls:
     - https://github.com/whindes/iox/releases/download/wordpress-fpm-0.2.1/wordpress-fpm-0.2.1.tgz
     version: 0.2.1
-generated: "2024-06-14T21:22:30.247512391Z"
+generated: "2024-06-21T21:13:34.828954076Z"
