@@ -88,6 +88,15 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
+persistence:
+  accessMode: ReadWriteOnce
+  additionalMounts: []
+  additionalVolumes: []
+  enabled: true
+  existingClaim: ''
+  size: 800Mi
+  storageClass: ''
+
 # Additional volumes on the output Deployment definition.
 volumes: []
 # - name: foo

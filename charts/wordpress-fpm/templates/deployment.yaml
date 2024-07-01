@@ -61,11 +61,25 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
+            {{- if .Values.volumeMounts }}
+             {{- .Values.volumeMounts | toYaml | nindent 12 }}
+            {{- end }}
+            {{- if .Values.persistence.additionalMounts }}
+             {{- .Values.persistence.additionalMounts | toYaml | nindent 12 }}
+            {{- end }}
           {{- end }}
-      {{- with .Values.volumes }}
+      {{- if or .Values.volumes .Values.persistence.additionalVolumes }}
       volumes:
-        {{- toYaml . | nindent 8 }}
+        {{- if .Values.volumes }}
+          {{- .Values.volumes | toYaml | nindent 8}}
+        {{- end }}
+        {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "wordpress-fpm.fullname" .) }}
+        {{- end }}
+        {{- if .Values.persistence.additionalVolumes }}
+          {{- .Values.persistence.additionalVolumes | toYaml | nindent 8}}
+        {{- end }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
