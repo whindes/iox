@@ -59,7 +59,7 @@ spec:
               value: {{ .Values.wordpressDbName }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.volumeMounts }}
+          {{- if or .Values.volumeMounts .Values.persistence.additionalMounts }}
           volumeMounts:
             {{- if .Values.volumeMounts }}
              {{- .Values.volumeMounts | toYaml | nindent 12 }}
