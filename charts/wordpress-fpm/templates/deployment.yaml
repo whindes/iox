@@ -36,6 +36,28 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+          args:
+            - -ec
+            - |
+              ping 127.0.0.1 -c 5
+              mkdir -p /opt/mgx
+              if [[ -f /var/www/html/wp-config.php ]]; then 
+                  echo "Wordpress already downloaded." 
+                  if [[ ! -d /opt/mgx/wordpress ]]; then ln -s /var/www/html /opt/mgx/wordpress; fi
+              else 
+                #curl -o wordpress.tar.gz -fL "https://wordpress.org/wordpress-6.5.4.tar.gz"
+                wget -cO wordpress.tar.gz "https://wordpress.org/wordpress-6.5.4.tar.gz"
+                echo "8c635f812ac7b6da985cc62885c101897229613f *wordpress.tar.gz" | sha1sum -c -
+                
+                # upstream tarballs include ./wordpress/ so this gives us /wordpress
+                tar -xzf wordpress.tar.gz -C /opt/mgx/
+                rm wordpress.tar.gz
+                if [[ -d /var/www/html ]]; then rm -Rf /var/www/html; fi
+                ln -s /opt/mgx/wordpress /var/www/html
+              fi
+                       
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
