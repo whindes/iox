@@ -41,22 +41,17 @@ spec:
           args:
             - -ec
             - |
-              ping 127.0.0.1 -c 5
-              mkdir -p /opt/mgx
-              if [[ -f /var/www/html/wp-config.php ]]; then 
-                  echo "Wordpress already downloaded." 
-                  if [[ ! -d /opt/mgx/wordpress ]]; then ln -s /var/www/html /opt/mgx/wordpress; fi
-              else 
-                #curl -o wordpress.tar.gz -fL "https://wordpress.org/wordpress-6.5.4.tar.gz"
-                wget -cO wordpress.tar.gz "https://wordpress.org/wordpress-6.5.4.tar.gz"
-                echo "8c635f812ac7b6da985cc62885c101897229613f *wordpress.tar.gz" | sha1sum -c -
-                
-                # upstream tarballs include ./wordpress/ so this gives us /wordpress
-                tar -xzf wordpress.tar.gz -C /opt/mgx/
-                rm wordpress.tar.gz
-                if [[ -d /var/www/html ]]; then rm -Rf /var/www/html; fi
-                ln -s /opt/mgx/wordpress /var/www/html
-              fi
+              sed -n '$! p' /usr/local/bin/docker-entrypoint.sh > entrypoint.txt
+              mkdir -p /opt/mgx/wordpress
+              apk update && apk --no-cache add rsync
+              cat entrypoint.txt > /usr/local/bin/docker-entrypoint.sh
+              if [[ -f /opt/mgx/wordpress/wp-config.php ]]; then rsync --update --delete -r /opt/mgx/wordpress/ /var/www/html; fi
+              rm entrypoint.txt
+              /usr/local/bin/docker-entrypoint.sh "php-fpm"  
+              printf "while true\ndo     \n     ping -c 15 127.0.0.1\n     rsync --update --delete -r /var/www/html/ /opt/mgx/wordpress\ndone" > /opt/mgx/wp_sync.sh
+              chmod +x /opt/mgx/wp_sync.sh && cp /opt/mgx/wp_sync.sh /usr/local/bin/wp_sync.sh
+              chown -R www-data:www-data /opt/mgx/wordpress
+              php-fpm | tee>(/usr/local/bin/wp_sync.sh)  
                        
           ports:
             - name: http
