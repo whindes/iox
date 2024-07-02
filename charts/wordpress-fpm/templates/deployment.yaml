@@ -45,8 +45,8 @@ spec:
               mkdir -p /opt/mgx/wordpress
               apk update && apk --no-cache add rsync
               cat entrypoint.txt > /usr/local/bin/docker-entrypoint.sh
+              if [[ -f entrypoint.txt ]]; then rm entrypoint.txt; fi
               if [[ -f /opt/mgx/wordpress/wp-config.php ]]; then rsync --update --delete -r /opt/mgx/wordpress/ /var/www/html; fi
-              rm entrypoint.txt
               /usr/local/bin/docker-entrypoint.sh "php-fpm"  
               printf "while true\ndo     \n     ping -c 15 127.0.0.1\n     rsync --update --delete -r /var/www/html/ /opt/mgx/wordpress\ndone" > /opt/mgx/wp_sync.sh
               chmod +x /opt/mgx/wp_sync.sh && cp /opt/mgx/wp_sync.sh /usr/local/bin/wp_sync.sh
