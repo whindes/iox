@@ -1,5 +1,26 @@
 apiVersion: v1
 entries:
+  cert-manager-webhook-namecheap:
+  - apiVersion: v2
+    appVersion: v0.1.4
+    created: "2024-12-15T15:48:18.926285203Z"
+    description: Namecheap Webhook for Cert Manager
+    digest: 85c1b07b2f215192b2cb25a759b31c285599d7a2b4b4ab879142843a89bbee75
+    name: cert-manager-webhook-namecheap
+    urls:
+    - https://github.com/whindes/iox/releases/download/cert-manager-webhook-namecheap-0.1.4/cert-manager-webhook-namecheap-0.1.4.tgz
+    version: 0.1.4
+  letsencrypt-namecheap-issuer:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2024-12-15T15:48:19.07547225Z"
+    description: A Helm chart for Kubernetes
+    digest: e23816271999f47a8a473950f628d7ab9356b0b95f72c051eb8fbec0b1d3bbe3
+    name: letsencrypt-namecheap-issuer
+    type: application
+    urls:
+    - https://github.com/whindes/iox/releases/download/letsencrypt-namecheap-issuer-0.1.4/letsencrypt-namecheap-issuer-0.1.4.tgz
+    version: 0.1.4
   nginx-stream:
   - apiVersion: v2
     appVersion: 1.16.4
@@ -132,4 +153,4 @@ entries:
     urls:
     - https://github.com/whindes/iox/releases/download/wordpress-fpm-0.2.1/wordpress-fpm-0.2.1.tgz
     version: 0.2.1
-generated: "2024-07-02T16:09:52.425369107Z"
+generated: "2024-12-15T15:48:19.075532242Z"
