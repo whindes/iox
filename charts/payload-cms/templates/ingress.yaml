@@ -1,5 +1,5 @@
 {{- if .Values.ingress.enabled -}}
-{{- $fullName := include "nginx-stream.fullname" . -}}
+{{- $fullName := include "payload-cms.fullname" . -}}
 {{- $svcPort := .Values.service.port -}}
 {{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
   {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
@@ -17,7 +17,7 @@ kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
-    {{- include "nginx-stream.labels" . | nindent 4 }}
+    {{- include "payload-cms.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -49,15 +49,9 @@ spec:
             backend:
               {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
               service:
-                {{- if and .backend .backend.service .backend.service.name .backend.service.port.number }}
-                name: {{ .backend.service.name }}
-                port:
-                  number: {{ .backend.service.port.number }}
-                {{- else }}
                 name: {{ $fullName }}
                 port:
                   number: {{ $svcPort }}
-                {{- end }}
               {{- else }}
               serviceName: {{ $fullName }}
               servicePort: {{ $svcPort }}

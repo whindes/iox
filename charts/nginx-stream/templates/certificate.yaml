@@ -1,0 +1,25 @@
+{{- if .Values.ingress.enabled }}
+{{- if .Values.ingress.tls }}
+{{- range $index, $tls := .Values.ingress.tls }}
+{{- if $tls.hosts }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "nginx-stream.certificateName" (dict "ctx" $ "index" $index) }}
+  labels:
+    {{- include "nginx-stream.labels" $ | nindent 4 }}
+spec:
+  commonName: {{ first $tls.hosts }}
+  dnsNames:
+    {{- range $tls.hosts }}
+    - {{ . }}
+    {{- end }}
+  issuerRef:
+    kind: ClusterIssuer
+    name: {{ include "nginx-stream.issuerName" $ }}
+  secretName: {{ $tls.secretName }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

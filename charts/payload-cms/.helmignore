@@ -14,11 +14,12 @@
 *.swp
 *.bak
 *.tmp
+*.orig
 *~
 # Various IDEs
 .project
 .idea/
 *.tmproj
+.vscode/
 
 .envrc
-.secretvals

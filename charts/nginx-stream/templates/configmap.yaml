@@ -1,0 +1,17 @@
+{{- if .Values.configmap.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nginx-stream.fullname" . }}-config
+  labels:
+    {{- include "nginx-stream.labels" . | nindent 4 }}
+data:
+  RSYNC_UNIQUE_FILE: {{ .Values.configmap.config.rsyncUniqueFile | quote }}
+  CUSTOM_RSYNC_PROXY_SETUP: {{ .Values.configmap.config.customRsyncProxySetup | quote }}
+  mgx-rsync-client.sh: |-
+{{- if .Values.configmap.config.decodeBase64 }}
+    {{ .Values.configmap.config.encodedData | b64dec | nindent 4 }}
+    {{- else }}
+    {{ .Values.configmap.config.plainText | nindent 4 }}
+{{- end }}
+{{- end }}

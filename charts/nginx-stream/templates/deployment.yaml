@@ -46,6 +46,16 @@ spec:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           env:
             {{- toYaml .Values.image.env | nindent 12 }}
+            - name: RSYNC_UNIQUE_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "nginx-stream.fullname" . }}-config
+                  key: RSYNC_UNIQUE_FILE
+            - name: CUSTOM_RSYNC_PROXY_SETUP
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "nginx-stream.fullname" . }}-config
+                  key: CUSTOM_RSYNC_PROXY_SETUP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if or .Values.volumeMounts .Values.persistence.additionalMounts }}
