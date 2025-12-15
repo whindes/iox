@@ -8,7 +8,7 @@ image:
   repository: wordpress
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "php8.3-fpm-alpine"
+  tag: "php8.4-fpm-alpine"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -40,8 +40,8 @@ securityContext: {}
   # runAsUser: 1000
 
 service:
+  port: 9000
   type: ClusterIP
-  port: 80
 
 ingress:
   enabled: false
@@ -59,7 +59,10 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-resources: {}
+resources: 
+  limits:
+    cpu: 500m
+    memory: 256Mi
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -92,23 +95,45 @@ persistence:
   accessMode: ReadWriteOnce
   additionalMounts: []
   additionalVolumes: []
-  enabled: true
+  enabled: false
   existingClaim: ''
   size: 800Mi
-  storageClass: ''
+  storageClass: local-path
 
 # Additional volumes on the output Deployment definition.
-volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
+volumes: 
+  - name: aiven-ca-cert            
+    secret:
+      secretName: xyz-api-wordpress-fpm-secrets
+      items:
+        - key: ca.pem  # The key in the secret
+          path: ca.pem  # This 'path' is used by subPath, but the filename is defined in mountPath
+  - name: xyz-entrypoint
+    configMap:
+      name: xyz-api-wordpress-fpm-config
+      defaultMode: 493
+  - name: wp-ssh-key            
+    secret:
+      secretName: xyz-api-wordpress-fpm-secrets
+      defaultMode: 384 
+      items:
+        - key: wp.pem  # The key in the secret
+          path: wp.pem  # This 'path' is used by subPath, but the filename is defined in mountPath
+  
 
 # Additional volumeMounts on the output Deployment definition.
-volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
+volumeMounts: 
+  - name: aiven-ca-cert         
+    mountPath: /etc/ssl/certs/ca.pem
+    subPath: ca.pem
+    readOnly: true
+  - name: xyz-entrypoint
+    mountPath: "/opt/xyz-entrypoint.sh" 
+    subPath: xyz-entrypoint.sh
+  - name: wp-ssh-key         
+    mountPath: /etc/ssl/private/wp.pem
+    subPath: wp.pem
+    readOnly: true
 
 nodeSelector: {}
 
@@ -116,7 +141,38 @@ tolerations: []
 
 affinity: {}
 
-wordpressDbHost: ''
-wordpressDbPassword: ''
-wordpressDbUser: ''
-wordpressDbName: ''
+# External secret management
+externalSecrets:
+  enabled: true
+  # Example for External Secrets Operator
+  secretStore:
+    name: local-vault
+    secretFile: '.secretvals'
+    kind: SecretStore
+  # Example for AWS Secrets Manager
+  # awsSecretsManager:
+  #   region: us-west-2
+  #   secretName: wordpress-secrets
+  # Example for Azure Key Vault
+  # azureKeyVault:
+  #   vaultUrl: https://your-vault.vault.azure.net/
+  #   tenantId: your-tenant-id
+
+
+config:
+  # Non-sensitive configuration values
+  rsyncBackupKeyPath: /etc/ssl/private/wp.pem
+  rsyncBackupHost: dns.example.com
+  rsyncBackupSource: ec2-user@dns.example.com:/opt/wp_rsync/wpx_monogenix_com
+  remoteFileCheck: wp-config.php
+  pvcSharedDir: /opt/xyz/wordpress
+  wordpressConfigExtra: "define('MYSQL_CLIENT_FLAGS', MYSQLI_CLIENT_SSL);\ndefine('MYSQL_SSL_CA', '/etc/ssl/certs/ca.pem');"
+
+
+# Secret configuration - these should be provided via external secret management
+# DO NOT put actual secret values here in production
+secrets:
+  wordpressDbHost: ''
+  wordpressDbPassword: ''
+  wordpressDbUser: ''
+  wordpressDbName: ''

@@ -11,5 +11,9 @@ spec:
       targetPort: 9000
       protocol: TCP
       name: http
+    - port: 873
+      targetPort: 873
+      protocol: TCP
+      name: rsync
   selector:
     {{- include "wordpress-fpm.selectorLabels" . | nindent 4 }}

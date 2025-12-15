@@ -1,0 +1,17 @@
+apiVersion: v2
+name: payload-cms
+description: A Helm chart for LMS Payload application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - lms
+  - payload
+  - nextjs
+  - education
+home: https://github.com/your-org/lms-payload
+sources:
+  - https://github.com/your-org/lms-payload
+maintainers:
+  - name: mgx-payload
+    email: your-email@example.com

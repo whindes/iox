@@ -1,121 +1,204 @@
-# Default values for nginx-stream.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+affinity: {}
+autoscaling:
+  enabled: false
+  maxReplicas: 100
+  minReplicas: 1
+  targetCPUUtilizationPercentage: 80
+configmap:
+  enabled: true
+  config:
+    rsyncUniqueFile: wp-config.php
+    customRsyncProxySetup: "/opt/lb/xyz-rsync-client.sh"
+    # Use ONE of these, not both
+    encodedData: |
+      IyEvYmluL2Jhc2gKZWNobyAiSGVsbG8gV29ybGQiCmVjaG8gIlRoaXMgaXMgYSBsYXJnZSBzY3JpcHQi
 
-replicaCount: 1
-
+    # OR use plain text for smaller scripts
+    plainText: |-
+      #!/bin/bash
+      echo "Hello World"
+      echo "This is a large script"
+  
+    # Flag to indicate which format you're using
+    decodeBase64: true
+# External secret management
+externalSecrets:
+  enabled: false
+  # Example for External Secrets Operator
+  secretTLSStore:
+    name: local-vault
+    secretFile: '.secret-tls-vals'
+    kind: SecretStore
+  secretStore:
+    name: local-vault
+    secretFile: '.secretvals'
+    kind: SecretStore
+  # Example for AWS Secrets Manager
+  # awsSecretsManager:
+  #   region: us-west-2
+  #   secretName: wordpress-secrets
+  # Example for Azure Key Vault
+  # azureKeyVault:
+  #   vaultUrl: https://your-vault.vault.azure.net/
+  #   tenantId: your-tenant-id
+fullnameOverride: xyz-lb-nginx-stream
 image:
-  repository: whindes/nginx
-  pullPolicy: Always
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: "alpine3.20-1.25.5"
   env:
     - name: RELEASE_BUILD
-      value: 1.0
-
+      value: '1.0'
+    - name: LB_ENV
+      value: wp_mgx
+    - name: SITE_NAME
+      value: wpx.example.com
+    - name: WEBSITES_PORT
+      value: '80'
+    - name: WP_KUBE_SVC
+      value: xyz-api-wordpress-fpm.namespace.svc.cluster.local
+    - name: ROOT_DOMAIN
+      value: example.com
+    - name: SYSLOG_SERVICE_HOSTNAME
+      value: ngxvector.example.com
+    - name: RSYNC_SOURCE_TARGET
+      value: wordpress
+    - name: TLS_CERT_UPDATED
+      value: mounted
+    - name: CUSTOM_RSYNCPROXY_SETUP
+      value: '/opt/lb/xyz-rsync-client.sh'
+    - name: RSYNC_SOURCE_TARGET
+      value: 'wordpress'
+    - name: RSYNC_SOURCE_TYPE
+      value: 'remote'
+    - name: RSYNC_REMOTE_SOURCE
+      value: 'dns.example.io'
+    - name: RSYNC_SSH_KEY
+      value: '/etc/ssl/private/xyz.pem'
+    - name: RSYNC_SSH_USER
+      value: 'ec2-user'
+    - name: RSYNC_REMOTE_SRC_DIR
+      value: '/opt/lb_rsync/wpx_remote'
+  pullPolicy: Always
+  repository: gitrepo/xyz-lb
+  tag: 0.5.1
 imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
-
-serviceAccount:
-  # Specifies whether a service account should be created 
-  create: true
-  # Automatically mount a ServiceAccount's API credentials?
-  automount: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
-
-podAnnotations: {}
-podLabels: {}
-
-podSecurityContext: {}
-  # fsGroup: 2000
-
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
-
-service:
-  type: ClusterIP
-  clusterIP: ''
-  port: 80
-
 ingress:
-  enabled: false
-  className: ""
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  className: nginx
+  enabled: true
   hosts:
-    - host: chart-example.local
+    - host: wpx.example.com
       paths:
         - path: /
           pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
-
-resources: 
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-   limits:
-     cpu: 100m
-     memory: 128Mi
-   requests:
-     cpu: 100m
-     memory: 128Mi
-
+    - host: lms.highclasstreats.com
+      paths:
+        - backend:
+            service:
+              name: xyz-lms-payload-cms
+              port:
+                number: 80
+          path: /
+          pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - wpx.example.com
+      secretName: tls-wpx-ingress
+    - hosts:
+        - lms.highclasstreats.com
+      secretName: tls-lms-ingress
 livenessProbe:
   httpGet:
     path: /
     port: http
-readinessProbe:
-  httpGet:
-    path: /
-    port: http
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
-
+nameOverride: nginx-stream
+nodeSelector: {}
 persistence:
   accessMode: ReadWriteOnce
   additionalMounts: []
   additionalVolumes: []
-  enabled: true
-  existingClaim: ''
+  enabled: false
+  existingClaim: xyz-api-wordpress-fpm
   size: 800Mi
   storageClass: ''
+podAnnotations: {}
+podLabels: {}
+podSecurityContext: {}
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+replicaCount: 1
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
 
+# Cert-manager configuration for automatic TLS certificate management
+certManager:
+  enabled: true
+  # Default issuer configuration
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
 
-# Additional volumes on the output Deployment definition.
-volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
-
-# Additional volumeMounts on the output Deployment definition.
-volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
-
-nodeSelector: {}
-
+# Secrets configuration
+secrets:
+  # TLS secrets will be managed by cert-manager
+  tlsSecrets:
+    - name: tls-wpx-ingress
+      hosts:
+        - wpx.example.com
+    - name: tls-lms-ingress
+      hosts:
+        - lms.koolskoolz.com
+  # Legacy TLS configuration (for manual certificates)
+  tlsSecretname: tls-wpx-ingress
+  tlsCertificate: 'LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQzFEQ0NBYndDQVFBd1FURUxNQWtHQTFVRUJoTUNVRlF4RGpBTUJnTlZCQWdNQlZCdmNuUnZNUTB3Q3dZRApWUVFIREFSTllXbGhNUk13RVFZRFZRUUtEQXBCWTIxbExDQkpibU11TUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGCkFBT0NBUThBTUlJQkNnS0NBUUVBdDlOcitUTzVJb1VNV242c25KMXkyVlpPWkNIb1poMFNUMW9UTU00SFBRNEoKc3ZMSnV5b3ZoalFESHVHeVM5VDJJdEQ1UEJRMytoREdEYy9wYzR4SlVaY0hnQXBXSmNlbFA5V2c3QTBOSWVpSApsYkVmME05VmFjOEY3QlVsZ3VXUFIvQ2hSN2hGY0MyWHY2a2x0RGtjZS9WNnY5eFlWV2I5dklFeGs5ZUFTaHRCClhLcE5zUE14OTBQY1QvVjZRcEpSOTV1L2EyL3dZRHVxZHUzdEtJbVhRSXJVTm9rSUt0RXBlT0tnYkd1dXZsQnAKWG1wZlVFRXVXaXJGVzYwWEFsT0l6ZFhnOHRlUXFlSkN1bThFSndaVFR3bmVLbmViZyt3R0xXSWl0NzljbHpzVgpMUXRZVXBVYmNLNzBoSVArY0Z1QmhQTlhGZDlHajRRR0J0RER1cWVNK3dJREFRQUJvRTR3VEFZSktvWklodmNOCkFRa09NVDh3UFRBT0JnTlZIUThCQWY4RUJBTUNCYUF3SFFZRFZSMGxCQll3RkFZSUt3WUJCUVVIQXdFR0NDc0cKQVFVRkJ3TUNNQXdHQTFVZEV3RUIvd1FDTUFBd0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFCcGZzN1o1RTNmTApjMkNxSDVIYXF6TlVRa1dCbHcrNk0xRFhwYS9TajBaK2tPMWwvNEZ0bEJFWTlzWGc2SVA5enlGNURJQjNDZEVWCk92ejI3WVBIK0tDQ2JsK2VDNTdiOXlVaUZIWGw2NDVnTGVYUVErcWcrMGY2WjNPNGM0Q1lneERHcUNneXl0eEUKM2dRanFKVWJnVktaeVhORTRHSmJrU090dWJXd0lqemxtQ0o5TThhTnpMQXVjOG5GN1pvYnl3aFBINDhnM1hUcQpUNWFqRnNuaC9lc2hZMkZOZHplWDZESHJPWGJtYkxBdnRmZlduWUdaRVFsTVhyaC9PeWVFejIxRndtVG9pcDBJCmtsVW9HMm5tQlR2M0p6RkQ4VVBoemIwcC9zMlVMbWRkVXV1OHJ6WEFXUVluZGdkMVNRekI5bXZrS2ZrOCtFbzQKQy9PSGRHVmRhd3M9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQ=='
+  tlsKey: 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2QUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktZd2dnU2lBZ0VBQW9JQkFRQzMwMnY1TTdraWhReGEKZnF5Y25YTFpWazVrSWVobUhSSlBXaE13emdjOURnbXk4c203S2krR05BTWU0YkpMMVBZaTBQazhGRGY2RU1ZTgp6K2x6akVsUmx3ZUFDbFlseDZVLzFhRHNEUTBoNkllVnNSL1F6MVZwendYc0ZTV0M1WTlIOEtGSHVFVndMWmUvCnFTVzBPUng3OVhxLzNGaFZadjI4Z1RHVDE0QktHMEZjcWsydzh6SDNROXhQOVhwQ2tsSDNtNzlyYi9CZ082cDIKN2Uwb2laZEFpdFEyaVFncTBTbDQ0cUJzYTY2K1VHbGVhbDlRUVM1YUtzVmJyUmNDVTRqTjFlRHkxNUNwNGtLNgpid1FuQmxOUENkNHFkNXVEN0FZdFlpSzN2MXlYT3hVdEMxaFNsUnR3cnZTRWcvNXdXNEdFODFjVjMwYVBoQVlHCjBNTzZwNHo3QWdNQkFBRUNnZ0VBQWdpSmJCSHpPcXIvd1U0T245SSttNjBxTE1BOVd3b2Mvb1pEbnYxWTlhazcKSlY0Rk95a1JqYW1qM2JyaDJQaUNpSjBPZjQxd3JkT1ZOSXAyYTQxdmxBRkdBMlh6ZU5GUGNqM3RQWkprT3ZaeAp3TjlZSnByQXhrZm5BZjFwNzQxdGxqL0ljdzFBclNlNTBWb0pENFZjSFJ4ZTY1RVE0L1dvSGRyLzJqbFJSYW5OCmZyaFhIUmlMeXRWQXN3REhNa2xxY0dBWVNTWTRVRm1vdytsWGQzS2hmV0UzcXZwRkIrSFhJVXF6bEpmM2lVN2kKekJRSDd2NUl4WVpFWkF5SmMrMldXMFZIVlB0QzdyMlV3NXU3OXFOMzh4bFdmMklLRjkyc0RHVU5yUlZ2WjFFMQprY1c0cURUSEUvV2J0Wk9NTXVSSjhreDZBZkZYK3g5dlVtNHYvcXZ0WVFLQmdRRDRoVHJWa1lRb29YWm9YWHF2Cm0wQ1U4RWhpM0lJZExmcXdVaHRSVzBTVUQzYlpGcUg5NE0wTERmNU5iMFN2ZE4vK1hvZXRTN0tLU3NjRDhYTzMKemIyQ2FrOE9lalBxL0Z4WDRzbytidDFBSU5hZmpHNHh5S2FneTF1OEdaVnJKU0tuWHlIZjBmcnZ4d3duOWJQUwpYbTFpc2F5ZkNRVzd0aW9YQlErMldDQVNJUUtCZ1FDOVc3MjRwZ2UySTNiSTJhSmxCeXBXbmVpcDhJVUJpdnJ5Cm1ORyt5VUtvSGVOZU1yMDRxMjgyNUFJYmt5dHVxaWdid21yT3ZUNXFacHdZaFhnT3liSVIzM1IvUS83ODlEdWQKWWZBMG1JTDVJMURwNGk0UzFWVlpXajVVUU0wU1N2bC9tdkQzYjJoZUZ3UTY0M255bnFGRWJHenROZlA0OTJibgowcWhMeDZBem13S0JnSEphZTdRQi9WbmswZU04QUZRRmtEWDRTcGFTK0p3TXFDbXgzamdWVXZ6K0VLWGJzRFp0CjFtdWJ5TVJBeXM0aGJXQlNod1BLclNETlA3NGt3Q1ozV1JoRmFwTXl6K2owcmxrU1ZoVmNWaHBJQWZud1dGUTQKQzlRNVBzRFMxTm8wZ0RtYm9LNm9wRnJvc0VOQzM3ZVJFNnd5TFVnUWtyN0pGNXo0Q3o3UVZoR0JBb0dBZXQyNApNTU9xWlVpRm5yVjRaYzFNYjM5dXBEWG9WNlB5U005WDZVOTE3TmZYM0J0WUpCazR4SWtWeFFhdE85VTB5UzVSClYydjd2OVpzbW95ZjVoaUJibzlyYTlpVzcxTWFDM2lzLzdPbDZEbytHa1FrV1J3TGtUcTVEcm90VmgxSDNzQ08KY2o3Ym5aR1pzUXhBNkdoOWc0UkcrWFAwcGlzQm5wSlZtVFlpZ05rQ2dZQVNFOXR3NWVHbHdzckR4YWVxNndaMApEbW96ZjhialNQNTRrVk02bnZoWmZ6YU9tNERBTnVCWEc3am45WVZXZlBqNXhSS3cxdng1TFVRalBIWXpVTHhwCm91YzBKakt1Z3lCQVFDb1pXeGdRWnVKZlI5aGVjT1ZPVGIrSVdRZmN6RGFzVEdKaFRxbEFaK0Q4UHFGYlFKdmcKZ3hoU1BIeWpoTGJlYVJnU243YnhOUT09Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0='
+  sshPrivateKeyName: xyz.pem
+  sshPrivateKey: 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRREU5YlljRWZ6NG9aY2IKR1ZCdThBYXlOK0k3WVJqT3R5ZXZIT2FWL0lTOW5YQVJUeGpJNHUrT01JVVFUd08wR0FzeFNRK3ByZlNrVnNIRwpURWovMzJ2cnlPcnRsUzZ6TGR5VGsxTVpnamRNWThsOXY2MUozc3hkNmVnU3dzS1IyaStoekd5bGNodlUzaXRSCk91SzJVNWVtbmJ3OUw0WjNwTVNxWjc2VjBXa3FqUFBRZGVIQTh0aU5ITThWM1A0aTV2akt5NkVZNFNKY3dnQnoKN1JyVFQrVGpRL0l0U2JvMXgxVmErSWg0SndIVnRHc0MvS0diOVgzUm9mdDlCTHJ2RnMzY1ZiYVdVRmY0MzRWdQp1dlNBL3pMT2JrRDJwSUVnZFZ3ejllSUcwSDRvKzJ4Tk1rNm1UN2FkbkZtSWdyYlVnQTFlTG15MVJPSUNUTHdtClZUbmdFWUVSQWdNQkFBRUNnZ0VBQUtQRTFjZVdyVzIvdmhkbk5wUDd3TG92WHV1SjRaSWxGMFpkczlGVkNaYSsKNjlsSDFLZTZ3V0JyMEFmSEdUTlZZeEYzK1RwQVU2QS94aVhJWGRnL2NvZWY3bTV3YzltUjY3bTNYUnpwZ0NDNQp4ZmxwU3BPSzFCY2tNWmczSHhxOHpIT2lsSDFZT3d3U1lGREJhbUxGaWFFTGQ3NDl3WS9icktVV29WUTNmZWF5CjJuemRaYUpOS1NGd3ExUHpaN2FYQmhlNXdyTW9yeC9pVWVFWEpGcTRQb09Odlh2QllSdDB1cGsvd3djVHM1ZUMKcWRuTE9KWnFYMnJYY1h1R0luYWxxeHpxdXBvdCtJeEc2NVJHQ3VqcWtJeVpoalAwQWp1QmM5VUxBOExyQXczZAo1aVhHUW9rUUxac1BTT25xWUlqSFpQbGcwa2FOZFJsU29nS3p2YS9EcVFLQmdRRGhreVZlWEJqUjZpcytlWkxqCkY3R0lBVG80VjhvVE9qNzhEQkY0OGxlUzZ1SnJpencralZ3MzAvRVlaQ0JWbmtFN0FNaHBUU3Z5RjB6VkJTM0EKUzc3dm5PUmI5WFB0U2wvK213ZlZ1eXNuSlRIY2xjTklHZ0RidVlIdVgraDUvT1JhZlVaSTFNOXp1RWxkQ1lJMgptanhwLyswTUoyQ1VBL3gzeFNzVXhYbllhUUtCZ1FEZmhvVmp0K2t5MmVwUGV5TDV0WXdhc3kwdHZnQlhXTC9qCnVZMkk0Q3QrUjh4dmJpTHNiNE1XRXZiRXZXdm1QOFZudmF6ekxTQzIxS0JUZUtVbWE4d0Y2S25WSWUwK25sMTIKRUFIVlQra2J1eFA0MWRtM2JJakVldHYyK3M3R2lMWVRoU25PUUt3eDJ3WHUvYlpXbzVTalVIOTFtaEFRZWQwcAo4VlNZQlBJT2FRS0JnUUNiOGJrRXlkQ1MxanQ5SGxrUXkrRjhyN1NMSFEzalN3SWVCMDNRK21EV2ZiRjRQYkt4Clg5S2YrZEtVVlN3UlpLMmQxOFcxSHBmQjdwKzhLSzlmWUQ0b3NxTWdlOGpnQStublAxQWtUeGZmSVJTZWRaNmkKYXUrcTkwMCsrV2pqWkpTTmhrdWZzQmVXM1pGQ1UzK0V0ZzRNRGRUWDhTVVFUczBzRTgvYnRVV3QrUUtCZ0RqdApkcjF0MG11TUNsdlJ2WmVoUUJ4d3M3bnBvUWFkNk1ranNjTkJiSEpOOE9nVVFicTdyOFFJY21hcTQzY1JtTUlTCkVhRWhSaXFxUG1iajNCUEw4bnN5eFVZdHpORmMzZXE2cXV6YjNEK2V4cmhpSm4vTG1ZMkl5TXEvRjdpQ2l2U3YKdm5UMERhYm81RHI0ek42RjdNNG5LejhWVExBVmlWa3NTR0lyS0VhNUFvR0FLMm92VWVuZ01KOHZJcFNjMmhPUwpxNkFXUXpqWVFsVVJaWTBqTktHdFhIYnY0cnN3YzFEclBlcWhobFo0d1FYL1FEK1A0UHpJQ3J0MkdFNU5kZlRXCmNBUmg5VVh3ZG1hSlgwQkVnL2x4T1RWSjdsNDdrd2FkR3pyWkcva2YzcUt1Y1NXeHJzSW1NaDU5aTNNb0cyUFEKTUI2TDVEZTRDRXoxbk9CVUhMZWZ5SlU9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0='
+securityContext: {}
+service:
+  clusterIP: None
+  port: 80
+  type: ClusterIP
+serviceAccount:
+  annotations: {}
+  automount: true
+  create: true
+  name: ''
 tolerations: []
-
-affinity: {}
+volumeMounts:
+  # TLS secret mounts - each secret gets its own directory
+  - mountPath: /etc/tlsx/wpx
+    name: tls-wpx-ingress
+  - mountPath: /etc/tlsx/lms
+    name: tls-lms-ingress
+  - name: xyz-rsync-client
+    mountPath: "/opt/lb/xyz-rsync-client.sh"
+    subPath: xyz-rsync-client.sh
+  - name: xyz-ssh-key
+    mountPath: /etc/ssl/private/xyz.pem
+    subPath: xyz.pem
+    readOnly: true
+volumes:
+  # TLS secrets - will be managed by cert-manager
+  - name: tls-wpx-ingress
+    secret:
+      secretName: tls-wpx-ingress
+  - name: tls-lms-ingress
+    secret:
+      secretName: tls-lms-ingress
+  - name: xyz-rsync-client
+    configMap:
+      name: xyz-lb-nginx-stream-config
+      defaultMode: 493
+  - name: xyz-ssh-key
+    secret:
+      secretName: xyz-lb-nginx-stream-secrets
+      defaultMode: 384
+      items:
+        - key: xyz.pem  # The key in the secret
+          path: xyz.pem  # This 'path' is used by subPath, but the filename is defined in mountPath

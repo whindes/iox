@@ -60,3 +60,34 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Generate certificate name based on TLS host and index
+*/}}
+{{- define "nginx-stream.certificateName" -}}
+{{- $ctx := .ctx -}}
+{{- $index := .index -}}
+{{- $tls := index $ctx.Values.ingress.tls $index -}}
+{{- if $tls.hosts -}}
+{{- $firstHost := first $tls.hosts -}}
+{{- $sanitizedHost := $firstHost | replace "." "-" | replace "*" "wildcard" -}}
+{{- printf "%s-cert-%s" (include "nginx-stream.fullname" $ctx) $sanitizedHost -}}
+{{- else -}}
+{{- printf "%s-cert-%d" (include "nginx-stream.fullname" $ctx) $index -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Get issuer name for certificates
+*/}}
+{{- define "nginx-stream.issuerName" -}}
+{{- if .Values.certManager -}}
+{{- if .Values.certManager.issuerRef -}}
+{{- .Values.certManager.issuerRef.name -}}
+{{- else -}}
+{{- "letsencrypt-prod" -}}
+{{- end -}}
+{{- else -}}
+{{- "letsencrypt-prod" -}}
+{{- end -}}
+{{- end -}}

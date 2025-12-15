@@ -1,0 +1,147 @@
+# Default values for lms-payload
+replicaCount: 1
+
+image:
+  repository: whindes/payload
+  pullPolicy: Always
+  tag: "alpine3.22"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: lms.koolskoolz.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Application configuration
+config:
+  # Non-sensitive configuration values
+  nodeEnv: production
+  nextTelemetryDisabled: "1"
+  port: "3000"
+  brevoEmailsActive: "true"
+  brevoSenderName: "LMS Platform"
+  payloadPublicStripeIsTestKey: "true"
+  
+  # Public URLs (not sensitive)
+  nextPublicServerUrl: "https://lms.koolskoolz.com"
+  nextPublicPayloadAuthUrl: "https://lms.koolskoolz.com/admin"
+  nextPublicStripePk: "pk_test_51RpVCQCV8uD68M4dhakqeiAnjL1b45mLLk0soKpGenVNOWhAT1nBG6jrvAKJ6r9fehbq6X3kHi7m7BcrLYn0mLxy00EWKE9s8c"
+
+# Secret configuration - these should be provided via external secret management
+# DO NOT put actual secret values here in production
+secrets:
+  # Database
+  databaseUri: ""
+  
+  # Payload
+  payloadSecret: ""
+  payloadAuthSecret: ""
+  
+  # S3/Object Storage
+  s3BucketName: ""
+  s3AccessKey: ""
+  s3SecretKey: ""
+  s3Endpoint: ""
+  s3Region: ""
+  
+  # Email services
+  brevoApiKey: ""
+  brevoSenderEmail: ""
+  mailgunEndpoint: ""
+  mailgunApiKey: ""
+  mailgunSenderEmail: ""
+  
+  # PDF service
+  windyPdfApiKey: ""
+  
+  # Stripe
+  stripeSk: ""
+  stripeWebhookSecret: ""
+
+# External secret management
+externalSecrets:
+  enabled: true
+  # Example for External Secrets Operator
+  secretStore:
+    name: local-vault
+    secretFile: '.secretvals'
+    kind: SecretStore
+  # Example for AWS Secrets Manager
+  # awsSecretsManager:
+  #   region: us-west-2
+  #   secretName: lms-payload-secrets
+  # Example for Azure Key Vault
+  # azureKeyVault:
+  #   vaultUrl: https://your-vault.vault.azure.net/
+  #   tenantId: your-tenant-id
+
+# Health checks
+healthCheck:
+  enabled: true
+  path: /admin
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessCheck:
+  enabled: true
+  path: /admin
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+persistence:
+  accessMode: ReadWriteOnce
+  additionalMounts: []
+  additionalVolumes: []
+  enabled: false
+  existingClaim: ''
+  size: 800Mi
+  storageClass: ''

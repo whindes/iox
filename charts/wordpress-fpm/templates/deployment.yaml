@@ -40,22 +40,14 @@ spec:
             - /bin/bash
           args:
             - -ec
-            - |
-              sed -n '$! p' /usr/local/bin/docker-entrypoint.sh > entrypoint.txt
-              mkdir -p /opt/mgx/wordpress
-              apk update && apk --no-cache add rsync
-              cat entrypoint.txt > /usr/local/bin/docker-entrypoint.sh
-              if [[ -f entrypoint.txt ]]; then rm entrypoint.txt; fi
-              if [[ -f /opt/mgx/wordpress/wp-config.php ]]; then rsync --update --delete -r /opt/mgx/wordpress/ /var/www/html; fi
-              /usr/local/bin/docker-entrypoint.sh "php-fpm"  
-              printf "while true\ndo     \n     ping -c 15 127.0.0.1\n     rsync --update --delete -r /var/www/html/ /opt/mgx/wordpress\ndone" > /opt/mgx/wp_sync.sh
-              chmod +x /opt/mgx/wp_sync.sh && cp /opt/mgx/wp_sync.sh /usr/local/bin/wp_sync.sh
-              chown -R www-data:www-data /opt/mgx/wordpress
-              php-fpm | tee>(/usr/local/bin/wp_sync.sh)  
+            - /opt/mgx-entrypoint.sh 
                        
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: rsync
+              containerPort: 873
               protocol: TCP
           {{- if .Values.enableProbes }}
           livenessProbe:
@@ -66,14 +58,58 @@ spec:
           env: 
             - name: CHART_NAME
               value: {{ .Chart.Name }}
+            - name: PVC_SHARED_DIR
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "wordpress-fpm.fullname" . }}-config
+                  key: PVC_SHARED_DIR
+            - name: REMOTE_FILE_CHECK
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "wordpress-fpm.fullname" . }}-config
+                  key: REMOTE_FILE_CHECK
+            - name: RSYNC_SSH_KEY_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "wordpress-fpm.fullname" . }}-config
+                  key: RSYNC_SSH_KEY_PATH
+            - name: RSYNC_BACKUP_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "wordpress-fpm.fullname" . }}-config
+                  key: RSYNC_BACKUP_HOST
+            - name: RSYNC_BACKUP_SOURCE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "wordpress-fpm.fullname" . }}-config
+                  key: RSYNC_BACKUP_SOURCE
+            - name: WORDPRESS_CONFIG_EXTRA
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "wordpress-fpm.fullname" . }}-config
+                  key: WORDPRESS_CONFIG_EXTRA
+            
+            # Sensitive data from Secrets
             - name: WORDPRESS_DB_HOST
-              value: {{ .Values.wordpressDbHost }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress-fpm.fullname" . }}-secrets
+                  key: WORDPRESS_DB_HOST
             - name: WORDPRESS_DB_USER
-              value: {{ .Values.wordpressDbUser }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress-fpm.fullname" . }}-secrets
+                  key: WORDPRESS_DB_USER
             - name: WORDPRESS_DB_PASSWORD
-              value: '{{ .Values.wordpressDbPassword }}'
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress-fpm.fullname" . }}-secrets
+                  key: WORDPRESS_DB_PASSWORD
             - name: WORDPRESS_DB_NAME
-              value: {{ .Values.wordpressDbName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress-fpm.fullname" . }}-secrets
+                  key: WORDPRESS_DB_NAME
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if or .Values.volumeMounts .Values.persistence.additionalMounts }}

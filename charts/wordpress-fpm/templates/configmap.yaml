@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wordpress-fpm.fullname" . }}-config
+  labels:
+     {{- include "wordpress-fpm.labels" . | nindent 4 }}
+data:
+  RSYNC_SSH_KEY_PATH: {{ .Values.config.rsyncBackupKeyPath | quote }}
+  RSYNC_BACKUP_HOST: {{ .Values.config.rsyncBackupHost | quote }}
+  RSYNC_BACKUP_SOURCE: {{ .Values.config.rsyncBackupSource | quote }}
+  PVC_SHARED_DIR: {{ .Values.config.pvcSharedDir | quote }}
+  REMOTE_FILE_CHECK: {{ .Values.config.remoteFileCheck | quote }}
+  WORDPRESS_CONFIG_EXTRA: {{ .Values.config.wordpressConfigExtra | quote }}
+  mgx-entrypoint.sh: |
+    #!/bin/sh
+
+    set -euo pipefail  # Exit on error, undefined vars, pipe failures
+
+    export TINI_SUBREAPER=true
+
+    head -n -1 /usr/local/bin/docker-entrypoint.sh > entrypoint.txt
+    cat entrypoint.txt > /usr/local/bin/docker-entrypoint.sh
+
+    if [[ -f entrypoint.txt ]]; 
+        then rm entrypoint.txt; 
+    fi
+
+    mkdir -p ${PVC_SHARED_DIR} /root/.ssh
+    apk update && apk --no-cache add rsync tini openssh
+
+    touch /root/.ssh/known_hosts
+
+    chmod 700 /root/.ssh
+    chmod 600 /root/.ssh/known_hosts
+    chmod 600 ${RSYNC_SSH_KEY_PATH} 2>/dev/null || true
+
+
+    ssh-keyscan -H ${RSYNC_BACKUP_HOST} >> ~/.ssh/known_hosts
+
+
+    if rsync -e "ssh -i ${RSYNC_SSH_KEY_PATH}" --list-only ${RSYNC_BACKUP_SOURCE}/ 2>/dev/null | grep -q "${REMOTE_FILE_CHECK}"; then
+         #rsync --update --delete -r ${PVC_SHARED_DIR} /var/www/html; 
+         echo "The ${REMOTE_FILE_CHECK} is on remote backup.  Pull into this container.";
+         rsync --update --delete --chown=www-data:www-data -avPzue "ssh -i ${RSYNC_SSH_KEY_PATH}" ${RSYNC_BACKUP_SOURCE}/ /var/www/html; 
+    else
+         echo "OK.  This will be a NEW BACKUP & INSTALL"
+    fi
+
+
+
+
+    cat << EOF > /opt/mgx/wp_sync.sh
+    #!/bin/bash
+
+    trap 'exit 0' TERM
+    rsync --delete -avPzue "ssh -i ${RSYNC_SSH_KEY_PATH}" /var/www/html/ ${RSYNC_BACKUP_SOURCE}
+
+    while true
+    do     
+         chown -R www-data:www-data /var/www/html
+         ping -c 2 127.0.0.1
+         # This will become the backup
+         #rsync --update --delete -r /var/www/html/ ${PVC_SHARED_DIR}
+         rsync --update --delete -avPzue "ssh -i ${RSYNC_SSH_KEY_PATH}" /var/www/html/ ${RSYNC_BACKUP_SOURCE}
+    done
+    EOF
+
+    cat << EOZ > /opt/mgx/rsync.conf
+    # docker/wordpress/rsyncd.conf
+    pid file = /var/run/rsyncd.pid
+    log file = /dev/stdout
+    uid = www-data
+    gid = www-data
+
+    [wordpress]
+    path = /var/www/html
+    comment = WordPress content directory
+    read only = yes
+    hosts allow = *
+    hosts deny = 0.0.0.0/0
+    use chroot = no
+    max connections = 10
+    timeout = 300
+    dont compress = *.gz *.tgz *.zip *.z *.rpm *.deb *.iso *.bz2 *.tbz
+    EOZ
+
+    chmod +x /opt/mgx/wp_sync.sh && cp /opt/mgx/wp_sync.sh /usr/local/bin/wp_sync.sh
+
+    /usr/local/bin/docker-entrypoint.sh "php-fpm"  
+
+    echo "Starting rsync daemon..."
+    rsync --daemon --config=/opt/mgx/rsync.conf --no-detach &
+    RSYNC_PID=$!
+
+    chown -R www-data:www-data /opt/mgx/wordpress
+    tini -- /usr/local/bin/wp_sync.sh & exec php-fpm 
+  
