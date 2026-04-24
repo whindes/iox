@@ -1,0 +1,6 @@
+apiVersion: v2
+name: nginx-lua
+description: Helm chart for fabiocicerchia/nginx-lua with TLS and upstream support
+type: application
+version: 0.1.0
+appVersion: "1.0"

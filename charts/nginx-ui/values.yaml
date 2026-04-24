@@ -1,0 +1,134 @@
+replicaCount: 1
+
+image:
+  repository: uozi/nginx-ui
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsUser: 101
+  fsGroup: 101
+
+securityContext:
+  runAsUser: 0
+
+service:
+  type: ClusterIP
+  ports:
+    http: 80
+    https: 443
+
+ingress:
+  enabled: true
+  className: ""  # nginx or your ingress class
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Your cert-manager issuer
+    # Traefik WebSocket support
+    traefik.ingress.kubernetes.io/service-upgrade: "true"
+    traefik.ingress.kubernetes.io/service-loadbalancer-http: "true"
+  hosts:
+    - host: nginx-ui.local.test  # Update to your domain
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+  - secretName: nginx-ui-tls
+    hosts:
+      - nginx-ui.local.test
+
+persistence:
+  enabled: false
+  # storageClass: ""  # Default or your class
+  accessMode: ReadWriteOnce
+  size: 1Gi
+
+resources: {}
+  # We recommend setting resource requests/limits for production
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: 9000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 9000
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+fixPermissions:
+  enabled: true
+  # initContainer runs as root to chown directories that nginx needs to write
+  image: busybox:latest
+  nginxUser: 101
+  nginxGroup: 101
+  directories:
+    - /var/log/nginx
+    - /var/cache/nginx
+    - /etc/nginx-ui
+    - /data
+    - /etc/nginx/streams-enabled
+
+nginx:
+  configMap: true
+  siteName: ui
+  serverName: localhost
+  proxySites: []
+  # proxySites:
+  #   - serverName: lms.example.com
+  #     upstream: http://host.docker.internal:3000
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Nginx UI config
+# Docker Socket: To enable Docker socket access (for controlling Nginx in another container),
+# mount the host docker socket and set NGINX_UI_IGNORE_DOCKER_SOCKET: "false"
+# Example volume mount (add to deployment.yaml):
+#   - name: docker-socket
+#     hostPath:
+#       path: /var/run/docker.sock
+#       type: Socket
+# And volumeMount:
+#   - name: docker-socket
+#     mountPath: /var/run/docker.sock
+config:
+  # These map to Docker Compose env vars
+  NGINX_UI_DB: "/data/nginx-ui.db"
+  NGINX_UI_CONFIG_PATH: "/etc/nginx/nginx.conf"
+  NGINX_UI_PID_PATH: "/run/nginx.pid"
+  NGINX_UI_SITES_AVAILABLE_PATH: "/etc/nginx/sites-available"
+  NGINX_UI_SITES_ENABLED_PATH: "/etc/nginx/sites-enabled"
+  NGINX_UI_VHOST_PATH: "/etc/nginx/vhost.d"
+  NGINX_UI_HTPASSWD_PATH: "/etc/nginx/.htpasswd"
+  NGINX_UI_DH_PARAM_PATH: "/etc/nginx/dhparam.pem"
+  # Disable Docker socket check in Kubernetes (not needed)
+  NGINX_UI_IGNORE_DOCKER_SOCKET: "true"
+  # WebSocket trusted origins (optional, set to your domain for security)
+  WEBSOCKET_TRUSTED_ORIGINS: "*"

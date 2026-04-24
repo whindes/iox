@@ -1,0 +1,100 @@
+replicaCount: 1
+
+image:
+  repository: fabiocicerchia/nginx-lua
+  pullPolicy: IfNotPresent
+  # tag: "1.25-alpine"  # or latest
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  ports:
+    http: 80
+    https: 443
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: local.test
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+  - secretName: nginx-lua-tls
+    hosts:
+      - local.test
+
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Custom config
+config:
+  upstreamScheme: http  # http or https
+  upstreamHost: my-backend.default.svc.cluster.local
+  upstreamPort: 8080
+  serverName: local.test
+  tlsTerminateAtIngress: true  # true: listen http only; false: enable https listener
+
+  # For end-to-end TLS
+  upstreamVerify: false  # enable proxy_ssl_verify
+  upstreamTrustedCA: ""  # path to CA bundle
+  upstreamClientCert: ""  # client cert for mTLS
+  upstreamClientKey: ""  # client key for mTLS
+
+# Secrets (create separately)
+secrets:
+  caBundle: ""
+  clientCert: ""
+  clientKey: ""

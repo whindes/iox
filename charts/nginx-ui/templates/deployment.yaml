@@ -1,0 +1,188 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nginx-ui.fullname" . }}
+  labels:
+    {{- include "nginx-ui.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nginx-ui.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "nginx-ui.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "nginx-ui.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.fixPermissions.enabled }}
+      initContainers:
+        - name: fix-permissions
+          image: {{ .Values.fixPermissions.image }}
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: nginx-ui-config
+              mountPath: /etc/nginx-ui
+{{- if .Values.nginx.configMap }}
+            - name: nginx-config
+              mountPath: /etc/nginx/sites-available
+            - name: nginx-conf-writable
+              mountPath: /etc/nginx-conf-writable
+            - name: nginx-sites-available-writable
+              mountPath: /etc/nginx-sites-available-writable
+{{- end }}
+            - name: nginx-sites-enabled
+              mountPath: /etc/nginx/sites-enabled
+          command:
+            - sh
+            - -c
+            - |
+              {{- range .Values.fixPermissions.directories }}
+              mkdir -p {{ . }}
+              {{- end }}
+
+              echo "Before chown:"
+              ls -la /var/log/nginx/ /var/cache/nginx/ 2>&1
+              # Set ownership for nginx directories (where nginx user needs write)
+              chown -R {{ .Values.fixPermissions.nginxUser }}:{{ .Values.fixPermissions.nginxGroup }} /var/log/nginx /var/cache/nginx
+              chmod 755 /var/log/nginx /var/cache/nginx
+              # Set ownership for app directories to nginx user (assume app runs as nginx)
+               chown -R {{ .Values.fixPermissions.nginxUser }}:{{ .Values.fixPermissions.nginxGroup }} /etc/nginx-ui /data
+               chmod 777 /etc/nginx-ui /data
+              # Create database file if it doesn't exist
+              touch /data/nginx-ui.db
+              chown {{ .Values.fixPermissions.nginxUser }}:{{ .Values.fixPermissions.nginxGroup }} /data/nginx-ui.db
+              chmod 666 /data/nginx-ui.db
+                # Create symlink for nginx site configuration
+                echo "Listing /etc/nginx/sites-available:"
+                ls -la /etc/nginx/sites-available/
+                echo "Creating /etc/nginx/sites-enabled directory"
+                mkdir -p /etc/nginx/sites-enabled
+                echo "Listing /etc/nginx/sites-enabled:"
+                ls -la /etc/nginx/sites-enabled/
+                ln -sf /etc/nginx/sites-available/{{ .Values.nginx.siteName }}.conf /etc/nginx/sites-enabled/{{ .Values.nginx.siteName }}.conf
+                echo "After ln, listing /etc/nginx/sites-enabled:"
+                ls -la /etc/nginx/sites-enabled/
+                # Remove built-in nginx configs that might interfere with WebSocket
+                rm -f /usr/local/etc/nginx/conf.d/nginx-ui.conf
+                rm -f /etc/nginx/conf.d/nginx-ui.conf
+                # Seed writable emptyDirs from ConfigMap so main container can overwrite them
+                cp /etc/nginx/sites-available/nginx.conf /etc/nginx-conf-writable/nginx.conf
+                cp /etc/nginx/sites-available/{{ .Values.nginx.siteName }}.conf /etc/nginx-sites-available-writable/{{ .Values.nginx.siteName }}.conf
+              echo "After chown:"
+              ls -la /var/log/nginx /var/cache/nginx /etc/nginx-ui /data 2>&1 | head -30
+              echo "File details:"
+              ls -la /var/log/nginx/* /var/cache/nginx/* 2>&1 || echo "No files"
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: https
+              containerPort: 443
+              protocol: TCP
+            - name: ui
+              containerPort: 9000
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          env:
+            - name: NGINX_UI_DB
+              value: {{ .Values.config.NGINX_UI_DB }}
+            - name: NGINX_UI_CONFIG_PATH
+              value: {{ .Values.config.NGINX_UI_CONFIG_PATH }}
+            - name: NGINX_UI_PID_PATH
+              value: {{ .Values.config.NGINX_UI_PID_PATH }}
+            - name: NGINX_UI_SITES_AVAILABLE_PATH
+              value: {{ .Values.config.NGINX_UI_SITES_AVAILABLE_PATH }}
+            - name: NGINX_UI_SITES_ENABLED_PATH
+              value: {{ .Values.config.NGINX_UI_SITES_ENABLED_PATH }}
+            - name: NGINX_UI_VHOST_PATH
+              value: {{ .Values.config.NGINX_UI_VHOST_PATH }}
+            - name: NGINX_UI_HTPASSWD_PATH
+              value: {{ .Values.config.NGINX_UI_HTPASSWD_PATH }}
+            - name: NGINX_UI_DH_PARAM_PATH
+              value: {{ .Values.config.NGINX_UI_DH_PARAM_PATH }}
+            - name: NGINX_UI_IGNORE_DOCKER_SOCKET
+              value: {{ .Values.config.NGINX_UI_IGNORE_DOCKER_SOCKET | quote }}
+            - name: WEBSOCKET_TRUSTED_ORIGINS
+              value: {{ .Values.config.WEBSOCKET_TRUSTED_ORIGINS | quote }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: nginx-run
+              mountPath: /run
+            - name: nginx-ui-config
+              mountPath: /etc/nginx-ui
+{{- if .Values.nginx.configMap }}
+            - name: nginx-conf-writable
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: nginx-sites-available-writable
+              mountPath: /etc/nginx/sites-available
+{{- end }}
+            - name: nginx-sites-enabled
+              mountPath: /etc/nginx/sites-enabled
+{{- range .Values.nginx.proxySites }}
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/{{ .serverName }}.conf
+              subPath: {{ .serverName }}.conf
+              readOnly: true
+{{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - sh
+                  - -c
+                  - |
+                    echo "Container running as user: $(id)"
+                    echo "Directory permissions:"
+                    ls -la /etc/nginx-ui /data /var/log/nginx /var/cache/nginx 2>&1 | head -20
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "nginx-ui.fullname" . }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+
+        - name: nginx-run
+          emptyDir: {}
+        - name: nginx-ui-config
+          emptyDir: {}
+        - name: nginx-sites-enabled
+          emptyDir: {}
+        {{- if .Values.nginx.configMap }}
+        - name: nginx-config
+          configMap:
+            name: {{ include "nginx-ui.fullname" . }}-nginx-config
+        - name: nginx-conf-writable
+          emptyDir: {}
+        - name: nginx-sites-available-writable
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

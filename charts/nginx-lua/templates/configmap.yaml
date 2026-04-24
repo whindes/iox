@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nginx-lua.fullname" . }}-config
+  labels:
+    {{- include "nginx-lua.labels" . | nindent 4 }}
+
+  default.conf.template: |
+    server {
+        listen 80;
+        server_name $NGINX_HOST;
+        # Listen HTTPS only if not terminating at ingress
+        {{- if not .Values.config.tlsTerminateAtIngress }}
+        listen 443 ssl;
+        ssl_certificate /etc/nginx/ssl/server.crt;
+        ssl_certificate_key /etc/nginx/ssl/server.key;
+        {{- end }}
+
+        location / {
+            {{- if eq .Values.config.upstreamScheme "https" }}
+            proxy_pass https://$NGINX_BACKEND_HOST:$NGINX_BACKEND_PORT;
+            {{- if .Values.config.upstreamVerify }}
+            proxy_ssl_verify on;
+            proxy_ssl_trusted_certificate /etc/nginx/ssl/ca.crt;
+            proxy_ssl_verify_depth 2;
+            proxy_ssl_session_reuse on;
+            {{- if .Values.secrets.clientCert }}
+            proxy_ssl_certificate /etc/nginx/ssl/client.crt;
+            proxy_ssl_certificate_key /etc/nginx/ssl/client.key;
+            {{- end }}
+            {{- else }}
+            proxy_pass http://$NGINX_BACKEND_HOST:$NGINX_BACKEND_PORT;
+            {{- end }}
+            {{- else }}
+            proxy_pass http://$NGINX_BACKEND_HOST:$NGINX_BACKEND_PORT;
+            {{- end }}
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }

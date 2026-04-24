@@ -1,0 +1,6 @@
+apiVersion: v2
+name: nginx-ui
+description: Helm chart for uozi/nginx-ui - Web UI for Nginx management
+type: application
+version: 0.1.0
+appVersion: "latest"
