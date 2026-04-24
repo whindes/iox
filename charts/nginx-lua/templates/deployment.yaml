@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nginx-lua.fullname" . }}
+  labels:
+    {{- include "nginx-lua.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "nginx-lua.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "nginx-lua.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nginx-lua.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: https
+              containerPort: 443
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          env:
+            - name: NGINX_HOST
+              value: {{ .Values.config.serverName }}
+            - name: NGINX_PORT
+              value: "80"
+            - name: NGINX_BACKEND_HOST
+              value: {{ .Values.config.upstreamHost }}
+            - name: NGINX_BACKEND_PORT
+              value: {{ printf "%v" .Values.config.upstreamPort | quote }}
+            - name: NGINX_SCHEME
+              value: {{ .Values.config.upstreamScheme }}
+            - name: NGINX_UPSTREAM_VERIFY
+              value: {{ .Values.config.upstreamVerify | quote }}
+            - name: NGINX_TLS_TERMINATE_AT_INGRESS
+              value: {{ .Values.config.tlsTerminateAtIngress | quote }}
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/templates
+            - name: nginx-confd
+              mountPath: /etc/nginx/conf.d
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: {{ include "nginx-lua.fullname" . }}-config
+        - name: nginx-confd
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

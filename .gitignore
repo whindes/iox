@@ -34,6 +34,13 @@ Session.vim
 # Chart dependencies
 **/charts/*.tgz
 
+skills-lock.json
+override-values.yaml
+
 .history
 .envrc
 .secretvals
+.secret-tls-vals
+.claude
+.agents
+.roo
