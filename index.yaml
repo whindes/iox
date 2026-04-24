@@ -40,7 +40,28 @@ entries:
     urls:
     - https://github.com/whindes/iox/releases/download/letsencrypt-namecheap-issuer-0.1.4/letsencrypt-namecheap-issuer-0.1.4.tgz
     version: 0.1.4
+  nginx-lua:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-04-24T16:18:00.897469255Z"
+    description: Helm chart for fabiocicerchia/nginx-lua with TLS and upstream support
+    digest: c589787234cba6934581b9e4c0dd0ee6efca24b1b2a385b96eb81840f4c5c2ea
+    name: nginx-lua
+    type: application
+    urls:
+    - https://github.com/whindes/iox/releases/download/nginx-lua-0.1.0/nginx-lua-0.1.0.tgz
+    version: 0.1.0
   nginx-stream:
+  - apiVersion: v2
+    appVersion: 1.29.3
+    created: "2026-04-24T16:18:01.015223644Z"
+    description: A Custom Nginx Service with Stream enabled
+    digest: 5b1249f585b69ec780e71270867b67ecc2b9030248b7b6df75072055bd0fbb37
+    name: nginx-stream
+    type: application
+    urls:
+    - https://github.com/whindes/iox/releases/download/nginx-stream-1.0.5/nginx-stream-1.0.5.tgz
+    version: 1.0.5
   - apiVersion: v2
     appVersion: 1.29.3
     created: "2025-12-15T19:17:50.056414514Z"
@@ -101,6 +122,17 @@ entries:
     urls:
     - https://github.com/whindes/iox/releases/download/nginx-stream-0.1.1/nginx-stream-0.1.1.tgz
     version: 0.1.1
+  nginx-ui:
+  - apiVersion: v2
+    appVersion: latest
+    created: "2026-04-24T16:18:01.109972429Z"
+    description: Helm chart for uozi/nginx-ui - Web UI for Nginx management
+    digest: 92179233e1aa3f7163ce298652d5486a04c292770bc5a27c703cb4a3afaf4508
+    name: nginx-ui
+    type: application
+    urls:
+    - https://github.com/whindes/iox/releases/download/nginx-ui-0.1.0/nginx-ui-0.1.0.tgz
+    version: 0.1.0
   payload-cms:
   - apiVersion: v2
     appVersion: 1.0.0
@@ -224,4 +256,4 @@ entries:
     urls:
     - https://github.com/whindes/iox/releases/download/wordpress-fpm-0.2.1/wordpress-fpm-0.2.1.tgz
     version: 0.2.1
-generated: "2025-12-16T10:31:54.9711234Z"
+generated: "2026-04-24T16:18:01.110027984Z"
