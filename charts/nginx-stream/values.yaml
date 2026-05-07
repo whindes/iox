@@ -10,6 +10,8 @@ certManager:
     kind: ClusterIssuer
     name: letsencrypt-prod
 configmap:
+  backendsSqlData: ""
+  backendsSqlMountPath: /opt/lb/lua/backends_data.sql
   config:
     customRsyncProxySetup: /opt/lb/xyz-rsync-client.sh
     decodeBase64: true

@@ -58,7 +58,7 @@ spec:
                   key: CUSTOM_RSYNC_PROXY_SETUP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- if or .Values.volumeMounts .Values.persistence.additionalMounts }}
+          {{- if or .Values.volumeMounts .Values.persistence.additionalMounts .Values.configmap.backendsSqlData }}
           volumeMounts:
             {{- if .Values.volumeMounts }}
              {{- .Values.volumeMounts | toYaml | nindent 12 }}
@@ -66,8 +66,14 @@ spec:
             {{- if .Values.persistence.additionalMounts }}
              {{- .Values.persistence.additionalMounts | toYaml | nindent 12 }}
             {{- end }}
+            {{- if .Values.configmap.backendsSqlData }}
+            - name: backends-data
+              mountPath: {{ .Values.configmap.backendsSqlMountPath }}
+              subPath: backends_data.sql
+              readOnly: true
+            {{- end }}
           {{- end }}
-      {{- if or .Values.volumes .Values.persistence.additionalVolumes }}
+      {{- if or .Values.volumes .Values.persistence.additionalVolumes .Values.configmap.backendsSqlData }}
       volumes:
         {{- if .Values.volumes }}
           {{- .Values.volumes | toYaml | nindent 8}}
@@ -78,6 +84,11 @@ spec:
         {{- end }}
         {{- if .Values.persistence.additionalVolumes }}
           {{- .Values.persistence.additionalVolumes | toYaml | nindent 8}}
+        {{- end }}
+        {{- if .Values.configmap.backendsSqlData }}
+        - name: backends-data
+          configMap:
+            name: {{ include "nginx-stream.fullname" . }}-backends-data
         {{- end }}
       {{- end }}
       {{- with .Values.nodeSelector }}
