@@ -15,3 +15,16 @@ data:
     {{ .Values.configmap.config.plainText | nindent 4 }}
 {{- end }}
 {{- end }}
+{{- if .Values.configmap.backendsSqlData }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nginx-stream.fullname" . }}-backends-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nginx-stream.labels" . | nindent 4 }}
+data:
+  backends_data.sql: |
+    {{- .Values.configmap.backendsSqlData | nindent 4 }}
+{{- end }}
